@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FMDX Server Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #0b111e;
+            --card-bg: #111827;
+            --text-main: #ffffff;
+            --text-muted: #9ca3af;
+            --accent-green: #10b981;
+            --accent-blue: #06b6d4;
+            --border-color: #1f2937;
+            
+            /* Signalstärken-Farben */
+            --sig-weak: #ef4444;   /* Rot */
+            --sig-fair: #f59e0b;   /* Gelb */
+            --sig-good: #10b981;   /* Grün */
+            --sig-strong: #06b6d4; /* Blau/Cyan */
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); padding: 20px; min-height: 100vh; }
+        
+        .dashboard-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); 
+            gap: 20px; 
+            width: 100%; 
+            max-width: 1400px; 
+            margin: 0 auto;
+        }
+        
+        .card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+        
+        .station-info h2 { font-size: 1.25rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
+        .station-info p { color: var(--text-muted); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
+        
+        .btn-open { background-color: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); color: var(--text-main); padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; text-decoration: none; }
+        .btn-open:hover { background-color: rgba(255, 255, 255, 0.1); }
+        
+        .main-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+        .stat-box .label { color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; display: block; margin-bottom: 4px; }
+        .freq-display, .sig-display { font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; transition: color 0.3s ease; }
+        .freq-unit, .sig-unit { font-size: 0.9rem; color: var(--text-muted); }
+        
+        .signal-bar-container { width: 100%; height: 6px; background-color: #1f2937; border-radius: 3px; margin-top: 8px; overflow: hidden; }
+        .signal-bar { height: 100%; background-color: var(--accent-blue); width: 0%; transition: width 0.2s linear, background-color 0.3s ease; }
+        
+        .meta-row { display: grid; grid-template-columns: 1.3fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .rds-box { background-color: rgba(0, 0, 0, 0.2); padding: 10px; border-radius: 8px; display: flex; gap: 10px; align-items: center; min-height: 44px; }
+        .pi-code { color: var(--text-muted); font-weight: bold; font-size: 0.9rem; border-right: 1px solid var(--border-color); padding-right: 8px; }
+        .ps-name { font-weight: 700; font-size: 1.1rem; color: #fff; white-space: pre; }
+        
+        .status-badges { display: flex; justify-content: space-between; align-items: center; }
+        .users-count { font-size: 0.9rem; color: var(--text-muted); }
+        .badge-stereo { background-color: rgba(255, 255, 255, 0.05); color: var(--text-muted); border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; }
+        
+        .radiotext-container { background-color: rgba(0, 0, 0, 0.15); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 20px; }
+        .radiotext-header { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 4px; }
+        
+        .rt-line { display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; min-height: 22px; margin-bottom: 4px; }
+        .rt-line:last-child { margin-bottom: 0; }
+        .rt-label { font-size: 0.7rem; font-weight: bold; color: var(--text-muted); background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; margin-right: 8px; min-width: 45px; text-align: center; }
+        .rt-text { flex-grow: 1; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-muted); }
+        
+        .rt-line.active .rt-text { color: var(--text-main); font-weight: 600; }
+        .rt-line.active .rt-label { background: rgba(6, 182, 212, 0.2); color: var(--accent-blue); }
+        .active-badge { font-size: 0.6rem; font-weight: bold; color: var(--accent-blue); margin-left: 6px; visibility: hidden; }
+        .rt-line.active .active-badge { visibility: visible; }
+
+        .pty-info { font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 6px; }
+        
+        .tx-info-box { border-top: 1px dashed var(--border-color); padding-top: 14px; }
+        .tx-header { font-size: 0.7rem; color: var(--accent-green); text-transform: uppercase; font-weight: bold; margin-bottom: 8px; }
+        .tx-details { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); }
+        .tx-details span strong { color: var(--text-main); }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-grid">
+        <!-- Server 1: Oeynhausen -->
+        <div class="card" id="srv-birki">
+            <div class="card-header"><div class="station-info"><h2>Oeynhausen</h2><p>birkidx.fmtuner.org</p></div><a href="https://birkidx.fmtuner.org" target="_blank" class="btn-open">Open ↗</a></div>
+            <div class="main-stats">
+                <div class="stat-box"><span class="label">Frequency</span><div class="freq-display"><span class="freq">--.--</span> <span class="freq-unit">MHz</span></div></div>
+                <div class="stat-box"><span class="label">Signal</span><div class="sig-display"><span class="sig">--.-</span> <span class="sig-unit">dBf</span></div><div class="signal-bar-container"><div class="signal-bar"></div></div></div>
+            </div>
+            <div class="meta-row">
+                <div class="rds-box"><div class="pi-code">----</div><div class="ps-name">--------</div></div>
+                <div class="status-badges"><div class="users-count">👥 <span class="users">-</span></div><div class="badge-stereo">---</div></div>
+            </div>
+            <div class="radiotext-container">
+                <div class="radiotext-header"><span>RDS / Radiotext</span><span class="rds-status">RDS</span></div>
+                <div class="rt-line rta"><span class="rt-label">TXT A</span><span class="rt-text">-</span><span class="active-badge">[AKTIV]</span></div>
+                <div class="rt-line rtb"><span class="rt-label">TXT B</span><span class="rt-text">-</span><span class="active-badge">[AKTIV]</span></div>
+                <div class="pty-info">PTY: <span class="pty">-</span></div>
+            </div>
+            <div class="tx-info-box"><div class="tx-header">Transmitter Info</div><div class="tx-details"><span>Station: <strong class="tx-station">-</strong></span><span>ERP: <strong class="tx-erp">-</strong></span><span>Dist: <strong class="tx-dist">-</strong></span></div></div>
+        </div>
+
+        <!-- Server 2: Freistadt -->
+        <div class="card" id="srv-highpoint">
+            <div class="card-header"><div class="station-info"><h2>Freistadt</h2><p>highpoint2000.selfhost.de</p></div><a href="http://highpoint2000.selfhost.de:8081" target="_blank" class="btn-open">Open ↗</a></div>
+            <div class="main-stats">
+                <div class="stat-box"><span class="label">Frequency</span><div class="freq-display"><span class="freq">--.--</span> <span class="freq-unit">MHz</span></div></div>
+                <div class="stat-box"><span class="label">Signal</span><div class="sig-display"><span class="sig">--.-</span> <span class="sig-unit">dBf</span></div><div class="signal-bar-container"><div class="signal-bar"></div></div></div>
+            </div>
+            <div class="meta-row">
+                <div class="rds-box"><div class="pi-code">----</div><div class="ps-name">--------</div></div>
+                <div class="status-badges"><div class="users-count">👥 <span class="users">-</span></div><div class="badge-stereo">---</div></div>
+            </div>
+            <div class="radiotext-container">
+                <div class="radiotext-header"><span>RDS / Radiotext</span><span class="rds-status">RDS</span></div>
+                <div class="rt-line rta"><span class="rt-label">TXT A</span><span class="rt-text">-</span><span class="active-badge">[AKTIV]</span></div>
+                <div class="rt-line rtb"><span class="rt-label">TXT B</span><span class="rt-text">-</span><span class="active-badge">[AKTIV]</span></div>
+                <div class="pty-info">PTY: <span class="pty">-</span></div>
+            </div>
+            <div class="tx-info-box"><div class="tx-header">Transmitter Info</div><div class="tx-details"><span>Station: <strong class="tx-station">-</strong></span><span>ERP: <strong class="tx-erp">-</strong></span><span>Dist: <strong class="tx-dist">-</strong></span></div></div>
+        </div>
+
+        <!-- Server 3: Wien -->
+        <div class="card" id="srv-dxhr">
+            <div class="card-header"><div class="station-info"><h2>Wien</h2><p>dxhr.fmtuner.org</p></div><a href="https://dxhr.fmtuner.org" target="_blank" class="btn-open">Open ↗</a></div>
+            <div class="main-stats">
+                <div class="stat-box"><span class="label">Frequency</span><div class="freq-display"><span class="freq">--.--</span> <span class="freq-unit">MHz</span></div></div>
+                <div class="stat-box"><span class="label">Signal</span><div class="sig-display"><span class="sig">--.-</span> <span class="sig-unit">dBf</span></div><div class="signal-bar-container"><div class="signal-bar"></div></div></div>
+            </div>
+            <div class="meta-row">
+                <div class="rds-box"><div class="pi-code">----</div><div class="ps-name">--------</div></div>
+                <div class="status-badges"><div class="users-count">👥 <span class="users">-</span></div><div class="badge-stereo">---</div></div>
+            </div>
+            <div class="radiotext-container">
+                <div class="radiotext-header"><span>RDS / Radiotext</span><span class="rds-status">RDS</span></div>
+                <div class="rt-line rta"><span class="rt-label">TXT A</span><span class="rt-text">-</span><span class="active-badge">[AKTIV]</span></div>
+                <div class="rt-line rtb"><span class="rt-label">TXT B</span><span class="rt-text">-</span><span class="active-badge">[AKTIV]</span></div>
+                <div class="pty-info">PTY: <span class="pty">-</span></div>
+            </div>
+            <div class="tx-info-box"><div class="tx-header">Transmitter Info</div><div class="tx-details"><span>Station: <strong class="tx-station">-</strong></span><span>ERP: <strong class="tx-erp">-</strong></span><span>Dist: <strong class="tx-dist">-</strong></span></div></div>
+        </div>
+
+        <!-- Server 4: Steyregg -->
+        <div class="card" id="srv-steyregg">
+            <div class="card-header"><div class="station-info"><h2>Steyregg</h2><p>steyregg.lumiwave.cc</p></div><a href="https://steyregg.lumiwave.cc" target="_blank" class="btn-open">Open ↗</a></div>
+            <div class="main-stats">
+                <div class="stat-box"><span class="label">Frequency</span><div class="freq-display"><span class="freq">--.--</span> <span class="freq-unit">MHz</span></div></div>
+                <div class="stat-box"><span class="label">Signal</span><div class="sig-display"><span class="sig">--.-</span> <span class="sig-unit">dBf</span></div><div class="signal-bar-container"><div class="signal-bar"></div></div></div>
+            </div>
+            <div class="meta-row">
+                <div class="rds-box"><div class="pi-code">----</div><div class="ps-name">--------</div></div>
+                <div class="status-badges"><div class="users-count">👥 <span class="users">-</span></div><div class="badge-stereo">---</div></div>
+            </div>
+            <div class="radiotext-container">
+                <div class="radiotext-header"><span>RDS / Radiotext</span><span class="rds-status">RDS</span></div>
+                <div class="rt-line rta"><span class="rt-label">TXT A</span><span class="rt-text">-</span><span class="active-badge">[AKTIV]</span></div>
+                <div class="rt-line rtb"><span class="rt-label">TXT B</span><span class="rt-text">-</span><span class="active-badge">[AKTIV]</span></div>
+                <div class="pty-info">PTY: <span class="pty">-</span></div>
+            </div>
+            <div class="tx-info-box"><div class="tx-header">Transmitter Info</div><div class="tx-details"><span>Station: <strong class="tx-station">-</strong></span><span>ERP: <strong class="tx-erp">-</strong></span><span>Dist: <strong class="tx-dist">-</strong></span></div></div>
+        </div>
+
+        <!-- Server 5: Kärnten -->
+        <div class="card" id="srv-mpdx">
+            <div class="card-header"><div class="station-info"><h2>Kärnten</h2><p>fmdxwebserver.mpdx.at</p></div><a href="https://fmdxwebserver.mpdx.at" target="_blank" class="btn-open">Open ↗</a></div>
+            <div class="main-stats">
+                <div class="stat-box"><span class="label">Frequency</span><div class="freq-display"><span class="freq">--.--</span> <span class="freq-unit">MHz</span></div></div>
+                <div class="stat-box"><span class="label">Signal</span><div class="sig-display"><span class="sig">--.-</span> <span class="sig-unit">dBf</span></div><div class="signal-bar-container"><div class="signal-bar"></div></div></div>
+            </div>
+            <div class="meta-row">
+                <div class="rds-box"><div class="pi-code">----</div><div class="ps-name">--------</div></div>
+                <div class="status-badges"><div class="users-count">👥 <span class="users">-</span></div><div class="badge-stereo">---</div></div>
+            </div>
+            <div class="radiotext-container">
+                <div class="radiotext-header"><span>RDS / Radiotext</span><span class="rds-status">RDS</span></div>
+                <div class="rt-line rta"><span class="rt-label">TXT A</span><span class="rt-text">-</span><span class="active-badge">[AKTIV]</span></div>
+                <div class="rt-line rtb"><span class="rt-label">TXT B</span><span class="rt-text">-</span><span class="active-badge">[AKTIV]</span></div>
+                <div class="pty-info">PTY: <span class="pty">-</span></div>
+            </div>
+            <div class="tx-info-box"><div class="tx-header">Transmitter Info</div><div class="tx-details"><span>Station: <strong class="tx-station">-</strong></span><span>ERP: <strong class="tx-erp">-</strong></span><span>Dist: <strong class="tx-dist">-</strong></span></div></div>
+        </div>
+
+        <!-- Server 6: Villach -->
+        <div class="card" id="srv-villach">
+            <div class="card-header"><div class="station-info"><h2>Villach</h2><p>villach.fmtuner.org</p></div><a href="https://villach.fmtuner.org" target="_blank" class="btn-open">Open ↗</a></div>
+            <div class="main-stats">
+                <div class="stat-box"><span class="label">Frequency</span><div class="freq-display"><span class="freq">--.--</span> <span class="freq-unit">MHz</span></div></div>
+                <div class="stat-box"><span class="label">Signal</span><div class="sig-display"><span class="sig">--.-</span> <span class="sig-unit">dBf</span></div><div class="signal-bar-container"><div class="signal-bar"></div></div></div>
+            </div>
+            <div class="meta-row">
+                <div class="rds-box"><div class="pi-code">----</div><div class="ps-name">--------</div></div>
+                <div class="status-badges"><div class="users-count">👥 <span class="users">-</span></div><div class="badge-stereo">---</div></div>
+            </div>
+            <div class="radiotext-container">
+                <div class="radiotext-header"><span>RDS / Radiotext</span><span class="rds-status">RDS</span></div>
+                <div class="rt-line rta"><span class="rt-label">TXT A</span><span class="rt-text">-</span><span class="active-badge">[AKTIV]</span></div>
+                <div class="rt-line rtb"><span class="rt-label">TXT B</span><span class="rt-text">-</span><span class="active-badge">[AKTIV]</span></div>
+                <div class="pty-info">PTY: <span class="pty">-</span></div>
+            </div>
+            <div class="tx-info-box"><div class="tx-header">Transmitter Info</div><div class="tx-details"><span>Station: <strong class="tx-station">-</strong></span><span>ERP: <strong class="tx-erp">-</strong></span><span>Dist: <strong class="tx-dist">-</strong></span></div></div>
+        </div>
+    </div>
+
+    <script>
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwKcoiMh4cqVrxYelUxd_gMZ8YUIo5scpt1yLC40gUz5tJQ2JyTK6vymkOAevDt-4h5yw/exec';
+
+        const SERVERS = [
+            { id: 'srv-birki', url: 'https://birkidx.fmtuner.org/api' },
+            { id: 'srv-highpoint', url: 'http://highpoint2000.selfhost.de:8081/api' },
+            { id: 'srv-dxhr', url: 'https://dxhr.fmtuner.org/api' },
+            { id: 'srv-steyregg', url: 'https://steyregg.lumiwave.cc/api' },
+            { id: 'srv-mpdx', url: 'https://fmdxwebserver.mpdx.at/api' },
+            { id: 'srv-villach', url: 'https://villach.fmtuner.org/api' }
+        ];
+
+        let currentServerIndex = 0;
+
+        async function updateSingleServer(server) {
+            const card = document.getElementById(server.id);
+            const fetchUrl = `${GOOGLE_SCRIPT_URL}?url=${encodeURIComponent(server.url)}`;
+
+            try {
+                const response = await fetch(fetchUrl);
+                if (!response.ok) return;
+                const data = await response.json();
+
+                if (data && !data.error) {
+                    card.querySelector('.freq').innerText = parseFloat(data.freq).toFixed(3);
+                    
+                    const sigValue = parseFloat(data.sig) || 0;
+                    card.querySelector('.sig').innerText = typeof data.sig === 'number' ? data.sig.toFixed(1) : data.sig;
+                    
+                    // --- Angepasste Schwellenwerte ---
+                    let sigColor = 'var(--text-main)';
+                    if (sigValue < 23) {
+                        sigColor = 'var(--sig-weak)';    // Rot bei unter 23 dBf
+                    } else if (sigValue >= 23 && sigValue < 40) {
+                        sigColor = 'var(--sig-fair)';    // Gelb von 23 bis 39.9 dBf
+                    } else if (sigValue >= 40 && sigValue < 75) {
+                        sigColor = 'var(--sig-good)';    // Grün von 40 bis 74.9 dBf
+                    } else if (sigValue >= 75) {
+                        sigColor = 'var(--sig-strong)';  // Blau/Cyan ab 75 dBf
+                    }
+                    
+                    const sigDisplay = card.querySelector('.sig-display');
+                    const sigBar = card.querySelector('.signal-bar');
+                    sigDisplay.style.color = sigColor;
+                    sigBar.style.backgroundColor = sigColor;
+                    
+                    const sigPercent = Math.min(Math.max((sigValue / 140) * 100, 0), 100);
+                    sigBar.style.width = `${sigPercent}%`;
+                    // ---------------------------------
+
+                    card.querySelector('.pi-code').innerText = data.pi && data.pi !== "0" ? data.pi : '????';
+                    card.querySelector('.ps-name').innerText = data.ps ? data.ps : '--------';
+                    card.querySelector('.users').innerText = data.users;
+                    card.querySelector('.pty').innerText = data.pty || '-';
+                    
+                    const lineA = card.querySelector('.rta');
+                    const lineB = card.querySelector('.rtb');
+                    lineA.querySelector('.rt-text').innerText = (data.rt0 || '').trim() || 'Kein Text A';
+                    lineB.querySelector('.rt-text').innerText = (data.rt1 || '').trim() || 'Kein Text B';
+                    
+                    if (data.rt_flag === 1) {
+                        lineA.classList.remove('active');
+                        lineB.classList.add('active');
+                    } else {
+                        lineB.classList.remove('active');
+                        lineA.classList.add('active');
+                    }
+
+                    const stereoBadge = card.querySelector('.badge-stereo');
+                    if (data.st) {
+                        stereoBadge.innerText = "STEREO";
+                        stereoBadge.style.backgroundColor = "rgba(16, 185, 129, 0.1)";
+                        stereoBadge.style.color = "var(--accent-green)";
+                    } else {
+                        stereoBadge.innerText = "MONO";
+                        stereoBadge.style.backgroundColor = "rgba(255, 255, 255, 0.05)";
+                        stereoBadge.style.color = "var(--text-muted)";
+                    }
+
+                    if (data.txInfo) {
+                        card.querySelector('.tx-station').innerText = data.txInfo.tx || '-';
+                        card.querySelector('.tx-erp').innerText = data.txInfo.erp ? data.txInfo.erp + ' kW' : '-';
+                        card.querySelector('.tx-dist').innerText = data.txInfo.dist ? data.txInfo.dist + ' km' : '-';
+                    } else {
+                        card.querySelector('.tx-station').innerText = '-';
+                        card.querySelector('.tx-erp').innerText = '-';
+                        card.querySelector('.tx-dist').innerText = '-';
+                    }
+
+                    const rdsStatus = card.querySelector('.rds-status');
+                    rdsStatus.innerText = data.rds ? 'RDS' : 'NO RDS';
+                    rdsStatus.style.color = data.rds ? 'var(--accent-green)' : 'var(--text-muted)';
+                }
+            } catch (error) {
+                console.log(`Fehler bei ${server.id}`);
+            }
+        }
+
+        function queueLoop() {
+            updateSingleServer(SERVERS[currentServerIndex]);
+            currentServerIndex = (currentServerIndex + 1) % SERVERS.length;
+        }
+
+        setInterval(queueLoop, 250);
+    </script>
+</body>
+</html>
