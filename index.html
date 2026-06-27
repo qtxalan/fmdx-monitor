@@ -216,8 +216,6 @@
             { id: 'srv-villach', url: 'https://villach.fmtuner.org/api' }
         ];
 
-        let currentServerIndex = 0;
-
         async function updateSingleServer(server) {
             const card = document.getElementById(server.id);
             const fetchUrl = `${GOOGLE_SCRIPT_URL}?url=${encodeURIComponent(server.url)}`;
@@ -233,16 +231,16 @@
                     const sigValue = parseFloat(data.sig) || 0;
                     card.querySelector('.sig').innerText = typeof data.sig === 'number' ? data.sig.toFixed(1) : data.sig;
                     
-                    // --- Angepasste Schwellenwerte ---
+                    // --- Schwellenwerte genau nach Wunsch ---
                     let sigColor = 'var(--text-main)';
                     if (sigValue < 23) {
-                        sigColor = 'var(--sig-weak)';    // Rot bei unter 23 dBf
+                        sigColor = 'var(--sig-weak)';    // Rot < 23
                     } else if (sigValue >= 23 && sigValue < 40) {
-                        sigColor = 'var(--sig-fair)';    // Gelb von 23 bis 39.9 dBf
+                        sigColor = 'var(--sig-fair)';    // Gelb 23 - 40
                     } else if (sigValue >= 40 && sigValue < 75) {
-                        sigColor = 'var(--sig-good)';    // Grün von 40 bis 74.9 dBf
+                        sigColor = 'var(--sig-good)';    // Grün 40 - 75
                     } else if (sigValue >= 75) {
-                        sigColor = 'var(--sig-strong)';  // Blau/Cyan ab 75 dBf
+                        sigColor = 'var(--sig-strong)';  // Blau/Cyan >= 75
                     }
                     
                     const sigDisplay = card.querySelector('.sig-display');
@@ -252,7 +250,6 @@
                     
                     const sigPercent = Math.min(Math.max((sigValue / 140) * 100, 0), 100);
                     sigBar.style.width = `${sigPercent}%`;
-                    // ---------------------------------
 
                     card.querySelector('.pi-code').innerText = data.pi && data.pi !== "0" ? data.pi : '????';
                     card.querySelector('.ps-name').innerText = data.ps ? data.ps : '--------';
@@ -302,12 +299,15 @@
             }
         }
 
-        function queueLoop() {
-            updateSingleServer(SERVERS[currentServerIndex]);
-            currentServerIndex = (currentServerIndex + 1) % SERVERS.length;
+        // Altes, stabiles Abfrageprinzip: Alle Server auf einmal triggern
+        async function updateAllServers() {
+            const promises = SERVERS.map(server => updateSingleServer(server));
+            await Promise.all(promises);
         }
 
-        setInterval(queueLoop, 250);
+        // Sofort beim Start laden und alle 10 Sekunden komplett erneuern
+        updateAllServers();
+        setInterval(updateAllServers, 10000);
     </script>
 </body>
 </html>
