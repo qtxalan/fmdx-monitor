@@ -11,6 +11,6 @@ This is my personal, custom-built HTML/JS dashboard designed to visualize, track
 
 ## 🔌 Data Source & Technical Integration
 The monitor relies on a custom data pipeline tailored to my specific hardware setup:
-- **Backend Compatibility:** The interface is built to display live data from **[NoobishSVK's FM-DX Webservers](https://github.com/NoobishSVK/fm-dx-webserver).**.
+- **Backend Compatibility:** The interface is built to display live data from **[NoobishSVK's FM-DX Webservers](https://github.com/NoobishSVK/fm-dx-webserver).**
 - **API Fetching:** It connects directly to the server's native `/api` endpoint to fetch real-time frequency and RDS streams.
 - **Automation Bridge:** Data routing, caching, and logging are handled via a custom **Google Apps Script** integration that bridges the webserver's `/api` directly with this frontend interface.
