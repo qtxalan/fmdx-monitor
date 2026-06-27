@@ -205,7 +205,8 @@
     </div>
 
     <script>
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwKcoiMh4cqVrxYelUxd_gMZ8YUIo5scpt1yLC40gUz5tJQ2JyTK6vymkOAevDt-4h5yw/exec';
+        // Deine neue Google Apps Script URL ist hier erfolgreich eingefügt:
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxeME41nYOptzjCjdd_H6u0RX5ZhOTv-rdsnJfmgp_JAnrgn4sRStJfTq-HcOw7nKwWAQ/exec';
 
         const SERVERS = [
             { id: 'srv-birki', url: 'https://birkidx.fmtuner.org/api' },
@@ -231,16 +232,16 @@
                     const sigValue = parseFloat(data.sig) || 0;
                     card.querySelector('.sig').innerText = typeof data.sig === 'number' ? data.sig.toFixed(1) : data.sig;
                     
-                    // --- Schwellenwerte genau nach Wunsch ---
+                    // Schwellenwerte
                     let sigColor = 'var(--text-main)';
                     if (sigValue < 23) {
-                        sigColor = 'var(--sig-weak)';    // Rot < 23
+                        sigColor = 'var(--sig-weak)';
                     } else if (sigValue >= 23 && sigValue < 40) {
-                        sigColor = 'var(--sig-fair)';    // Gelb 23 - 40
+                        sigColor = 'var(--sig-fair)';
                     } else if (sigValue >= 40 && sigValue < 75) {
-                        sigColor = 'var(--sig-good)';    // Grün 40 - 75
+                        sigColor = 'var(--sig-good)';
                     } else if (sigValue >= 75) {
-                        sigColor = 'var(--sig-strong)';  // Blau/Cyan >= 75
+                        sigColor = 'var(--sig-strong)';
                     }
                     
                     const sigDisplay = card.querySelector('.sig-display');
@@ -299,15 +300,16 @@
             }
         }
 
-        // Altes, stabiles Abfrageprinzip: Alle Server auf einmal triggern
         async function updateAllServers() {
-            const promises = SERVERS.map(server => updateSingleServer(server));
-            await Promise.all(promises);
+            // Holt alle Server parallel ab, blockiert nicht mehr
+            await Promise.all(SERVERS.map(server => updateSingleServer(server)));
         }
 
-        // Sofort beim Start laden und alle 10 Sekunden komplett erneuern
+        // Lädt einmal sofort beim Öffnen der Seite
         updateAllServers();
-        setInterval(updateAllServers, 10000);
+        
+        // Aktualisiert ab jetzt nur noch alle 15 Sekunden komplett (sicher vor Google Blocks)
+        setInterval(updateAllServers, 15000);
     </script>
 </body>
 </html>
