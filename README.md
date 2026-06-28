@@ -1,4 +1,5 @@
 # 📻 FMDX-Monitor 📻
+<img width="1919" height="1079" alt="Screenshot 2026-06-28 133012" src="https://github.com/user-attachments/assets/102104d6-a51c-4d0b-98bf-4deb8da755f7" />
 
 This is my personal, custom-built HTML/JS dashboard designed to visualize, track, and log long-distance FM radio receptions (FM-DXing). It is tailored specifically for my own radio monitoring station and optimized for capturing propagation events like **Sporadic-E (Es)**, **Tropospheric Ducting (Tropo)**, and **Meteor Scatter**.
 
